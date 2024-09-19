@@ -6,7 +6,7 @@ import java.net.*;
 public class Client {
 
     public static void main(String[] args) {
-        String Username = "Rainer";
+        String username = "Rainer";
         try (Socket socket = new Socket("localhost", 12345)) {
             System.out.println("Mit dem Server verbunden!");
 
@@ -15,7 +15,8 @@ public class Client {
             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
             BufferedReader userInput = new BufferedReader(new InputStreamReader(System.in));
 
-            out.println(Username);
+            // Username an den Server senden
+            out.println(username);
 
             // Thread für den Empfang von Nachrichten vom Server
             new Thread(new Runnable() {
@@ -36,7 +37,13 @@ public class Client {
             String userMessage;
             while ((userMessage = userInput.readLine()) != null) {
                 System.out.println("Me: " + userMessage);
-                out.println(Username + ": " + userMessage);
+
+                // Wenn die Nachricht mit @ beginnt, ist es eine private Nachricht
+                if (userMessage.startsWith("@")) {
+                    out.println(userMessage);
+                } else {
+                    out.println(username + ": " + userMessage);
+                }
             }
 
         } catch (IOException e) {

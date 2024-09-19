@@ -3,10 +3,10 @@ package com.example.demo2;
 import java.io.*;
 import java.net.*;
 
-public class ClientOne {
+public class ClientTwo {
 
     public static void main(String[] args) {
-        String username = "Nico";
+        String username = "Steve";
         try (Socket socket = new Socket("localhost", 12345)) {
             System.out.println("Mit dem Server verbunden!");
 

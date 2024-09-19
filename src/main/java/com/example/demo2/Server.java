@@ -2,17 +2,14 @@ package com.example.demo2;
 
 import java.io.*;
 import java.net.*;
-
 import java.util.*;
 
 public class Server {
 
-    // Liste für die verbundenen Clients
-    private static Set<ClientHandler> clientHandlers = new HashSet<>();
+    // Liste für die verbundenen Clients (mit dem Benutzernamen als Schlüssel)
+    private static Map<String, ClientHandler> clientHandlers = new HashMap<>();
 
     public static void main(String[] args) {
-
-        // Öffnet einen socket
         try (ServerSocket serverSocket = new ServerSocket(12345)) {
             System.out.println("Server gestartet...");
 
@@ -21,9 +18,8 @@ public class Server {
                 Socket socket = serverSocket.accept();
                 System.out.println("Neuer Client verbunden ");
 
-                // Erstellen eines neuen Client-Handler
+                // Erstellen eines neuen Client-Handlers
                 ClientHandler clientHandler = new ClientHandler(socket);
-                clientHandlers.add(clientHandler);
 
                 // Starten des Handlers in einem eigenen Thread
                 new Thread(clientHandler).start();
@@ -34,22 +30,41 @@ public class Server {
         }
     }
 
-    // Methode, um Nachrichten an alle Clients zu senden
+    // Methode, um eine Nachricht an einen bestimmten Client zu senden
+    public static void sendMessageToSpecificClient(String targetUsername, String message, ClientHandler sender) {
+        ClientHandler targetClient = clientHandlers.get(targetUsername);
+        if (targetClient != null && targetClient != sender) {
+            targetClient.sendMessage(message);
+        } else {
+            sender.sendMessage("Benutzer " + targetUsername + " nicht gefunden oder nicht online.");
+        }
+    }
+
+    //broadcast
     public static void broadcastMessage(String message, ClientHandler sender) {
-        for (ClientHandler clientHandler : clientHandlers) {
+        for (ClientHandler clientHandler : clientHandlers.values()) {
             if (clientHandler != sender) {
                 clientHandler.sendMessage(message);
             }
         }
     }
 
-    // Entfernen eines Clients
+    // Methode, um einen Client der Liste hinzuzufügen
+    public static void addClient(String username, ClientHandler clientHandler) {
+        clientHandlers.put(username, clientHandler);
+    }
+
+    // Methode, um einen Client zu entfernen
     public static void removeClient(ClientHandler clientHandler) {
-        clientHandlers.remove(clientHandler);
+        clientHandlers.remove(clientHandler.getUsername());
+    }
+
+    // Liste aller verbundenen Clients zurückgeben
+    public static String getAllUsernames() {
+        return String.join(", ", clientHandlers.keySet());
     }
 }
 
-// Clienthandler instanz erstellt seperate threads um diese zeigleich verarbeiten zu können ohne einen anderen client zu blockieren.
 class ClientHandler implements Runnable {
     private String username;
     private Socket socket;
@@ -67,15 +82,29 @@ class ClientHandler implements Runnable {
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new PrintWriter(socket.getOutputStream(), true);
 
-            // Begrüßungsnachricht
+            // Begrüßungsnachricht und Benutzername speichern
             this.username = in.readLine();
+            Server.addClient(username, this);
             out.println("Willkommen im Chat " + username);
+            System.out.println(username + " hat den Chat betreten.");
 
             String message;
             while ((message = in.readLine()) != null) {
                 System.out.println(message);
-                // Nachricht an alle anderen Clients senden
-                Server.broadcastMessage(message, this);
+
+                // Nachricht kann im Format "@username: Nachricht" gesendet werden
+                if (message.startsWith("@")) {
+                    int colonIndex = message.indexOf(" ");
+                    if (colonIndex != -1) {
+                        String targetUsername = message.substring(1, colonIndex);
+                        String privateMessage = message.substring(colonIndex + 1).trim();
+                        System.out.println(targetUsername + " " + privateMessage);
+                        Server.sendMessageToSpecificClient(targetUsername, username + " (privat): " + privateMessage, this);
+                    }
+                } else {
+                    // Nachricht an alle anderen Clients senden
+                    Server.broadcastMessage(username + ": " + message, this);
+                }
             }
 
         } catch (IOException e) {
@@ -86,7 +115,7 @@ class ClientHandler implements Runnable {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            // Remove client when they disconnect
+            // Client entfernen, wenn er sich trennt
             Server.removeClient(this);
             System.out.println(username + " hat die Verbindung getrennt.");
         }
@@ -95,5 +124,9 @@ class ClientHandler implements Runnable {
     // Nachricht an den Client senden
     public void sendMessage(String message) {
         out.println(message);
+    }
+
+    public String getUsername() {
+        return username;
     }
 }
