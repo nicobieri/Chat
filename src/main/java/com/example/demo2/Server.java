@@ -11,6 +11,8 @@ public class Server {
     private static Set<ClientHandler> clientHandlers = new HashSet<>();
 
     public static void main(String[] args) {
+
+        // Öffnet einen socket
         try (ServerSocket serverSocket = new ServerSocket(12345)) {
             System.out.println("Server gestartet...");
 
@@ -19,7 +21,7 @@ public class Server {
                 Socket socket = serverSocket.accept();
                 System.out.println("Neuer Client verbunden ");
 
-                // Erstellen eines neuen Client-Handlers
+                // Erstellen eines neuen Client-Handler
                 ClientHandler clientHandler = new ClientHandler(socket);
                 clientHandlers.add(clientHandler);
 
@@ -47,6 +49,7 @@ public class Server {
     }
 }
 
+// Clienthandler instanz erstellt seperate threads um diese zeigleich verarbeiten zu können ohne einen anderen client zu blockieren.
 class ClientHandler implements Runnable {
     private String username;
     private Socket socket;
