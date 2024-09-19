@@ -42,7 +42,7 @@ public class ClientTwo {
                 if (userMessage.startsWith("@")) {
                     out.println(userMessage);
                 } else {
-                    out.println(username + ": " + userMessage);
+                    out.println(userMessage);
                 }
             }
 
